@@ -21,13 +21,57 @@ class CalculatorScreen extends StatefulWidget {
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
   String _display = '';
+  double? _firstOperand; // Made nullable
+  String? _operator;     // Made nullable
+
+  void _onButtonPressed(String value) {
+    setState(() {
+      if (value == 'C') {
+        _display = '';
+        _firstOperand = null;
+        _operator = null;
+      } else if (value == '+' || value == '-' || value == '*' || value == '/') {
+        if (_display.isNotEmpty) {
+          _firstOperand = double.parse(_display);
+          _operator = value;
+          _display = '';
+        }
+      } else if (value == '=') {
+        if (_operator != null && _display.isNotEmpty && _firstOperand != null) {
+          double secondOperand = double.parse(_display);
+          late double result; // Using 'late' to guarantee initialization
+          switch (_operator) {
+            case '+':
+              result = _firstOperand! + secondOperand;
+              break;
+            case '-':
+              result = _firstOperand! - secondOperand;
+              break;
+            case '*':
+              result = _firstOperand! * secondOperand;
+              break;
+            case '/':
+              result = _firstOperand! / secondOperand;
+              break;
+            default:
+              result = 0;
+          }
+          _display = result.toString();
+          _firstOperand = null;
+          _operator = null;
+        }
+      } else {
+        _display += value;
+      }
+    });
+  }
 
   Widget _buildButton(String value) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ElevatedButton(
-          onPressed: () {}, // Functionality added in later commits
+          onPressed: () => _onButtonPressed(value),
           child: Text(value, style: TextStyle(fontSize: 24)),
         ),
       ),
@@ -37,9 +81,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Calculator'),
-      ),
+      appBar: AppBar(title: Text('Calculator')),
       body: Column(
         children: <Widget>[
           Expanded(

@@ -20,50 +20,94 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  String _display = '';
-  double? _firstOperand; // Made nullable
-  String? _operator;     // Made nullable
+  String _display = '0';
+  double? _firstOperand;
+  String? _operator;
+  bool _shouldResetDisplay = false;
 
   void _onButtonPressed(String value) {
     setState(() {
       if (value == 'C') {
-        _display = '';
+        _display = '0';
         _firstOperand = null;
         _operator = null;
+        _shouldResetDisplay = false;
       } else if (value == '+' || value == '-' || value == '*' || value == '/') {
+        // When an operator is pressed, store the first operand and operator
         if (_display.isNotEmpty) {
+          // If we already have a pending operation, calculate it first
+          if (_operator != null && _firstOperand != null) {
+            _calculateResult();
+          }
+          
           _firstOperand = double.parse(_display);
           _operator = value;
-          _display = '';
+          _shouldResetDisplay = true;
         }
       } else if (value == '=') {
-        if (_operator != null && _display.isNotEmpty && _firstOperand != null) {
-          double secondOperand = double.parse(_display);
-          late double result; // Using 'late' to guarantee initialization
-          switch (_operator) {
-            case '+':
-              result = _firstOperand! + secondOperand;
-              break;
-            case '-':
-              result = _firstOperand! - secondOperand;
-              break;
-            case '*':
-              result = _firstOperand! * secondOperand;
-              break;
-            case '/':
-              result = _firstOperand! / secondOperand;
-              break;
-            default:
-              result = 0;
-          }
-          _display = result.toString();
-          _firstOperand = null;
-          _operator = null;
-        }
+        // On equals, perform the calculation if all components are available
+        _calculateResult();
       } else {
-        _display += value;
+        // Handle digit or decimal input
+        if (_shouldResetDisplay) {
+          _display = value;
+          _shouldResetDisplay = false;
+        } else {
+          // Don't allow multiple leading zeros
+          if (_display == '0' && value != '.') {
+            _display = value;
+          } else {
+            // Don't allow multiple decimal points
+            if (value == '.' && _display.contains('.')) {
+              return;
+            }
+            _display += value;
+          }
+        }
       }
     });
+  }
+
+  void _calculateResult() {
+    if (_operator != null && _firstOperand != null) {
+      double secondOperand = double.parse(_display);
+      // Check for division by zero
+      if (_operator == '/' && secondOperand == 0) {
+        _display = 'Error';
+        _firstOperand = null;
+        _operator = null;
+        return;
+      }
+      
+      double result;
+      switch (_operator) {
+        case '+':
+          result = _firstOperand! + secondOperand;
+          break;
+        case '-':
+          result = _firstOperand! - secondOperand;
+          break;
+        case '*':
+          result = _firstOperand! * secondOperand;
+          break;
+        case '/':
+          result = _firstOperand! / secondOperand;
+          break;
+        default:
+          return;
+      }
+      
+      // Format result: display as integer if there's no fractional part
+      if (result == result.roundToDouble()) {
+        _display = result.toInt().toString();
+      } else {
+        _display = result.toString();
+      }
+      
+      _firstOperand = result; // Store result for chaining calculations
+      _operator = null;
+      _shouldResetDisplay = true;
+    }
   }
 
   Widget _buildButton(String value) {
@@ -118,9 +162,14 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           Row(
             children: <Widget>[
               _buildButton('0'),
-              _buildButton('C'),
+              _buildButton('.'),
               _buildButton('='),
               _buildButton('+'),
+            ],
+          ),
+          Row(
+            children: <Widget>[
+              _buildButton('C'),
             ],
           ),
         ],
